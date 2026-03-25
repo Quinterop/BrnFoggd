@@ -1,0 +1,5 @@
+popup to display times visited and total time spent today when accessing site (not when navigating to other pages on the site)
+block site after x visits a day
+block site after y minutes a day
+change these conditions between or and and
+config page
