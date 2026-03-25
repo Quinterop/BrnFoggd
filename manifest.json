@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BrnFoggd",
-  "version": "0.0",
+  "version": "0.1",
   "permissions": [
     "tabs",
     "storage",
