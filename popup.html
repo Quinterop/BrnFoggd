@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: sans-serif;
+            width: 220px;
+            padding: 16px;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 0;
+        }
+
+        h2 {
+            font-size: 1rem;
+            margin: 0 0 12px;
+            color: #fff;
+        }
+
+        .site {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 16px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .val {
+            color: #4a90d9;
+            font-weight: bold;
+        }
+
+        .warn {
+            color: #e67e22;
+        }
+
+        .blocked {
+            color: #c0392b;
+            text-align: center;
+            margin-top: 8px;
+            font-size: 0.8rem;
+        }
+
+        hr {
+            border-color: #333;
+            margin: 12px 0;
+        }
+
+        a {
+            display: block;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #aaa;
+            text-decoration: none;
+            margin-top: 12px;
+        }
+
+        a:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>⏱ Time Limiter</h2>
+    <div class="site" id="site">—</div>
+
+    <div class="row"><span>Time today</span> <span class="val" id="timeToday">—</span></div>
+    <div class="row"><span>Session left</span> <span class="val" id="timeLeft">—</span></div>
+    <div class="row"><span>Visits left</span> <span class="val" id="visitsLeft">—</span></div>
+
+    <div class="blocked" id="blocked"></div>
+
+    <hr>
+    <a href="../options/options.html" target="_blank">⚙ Settings</a>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>
