@@ -5,6 +5,8 @@ const DEFAULT_CONFIG = {
     maxVisits: 5,     // per day
     resetHour: 6      // 6 AM reset
 };
+const tabHosts = {}; // { tabId: lastHost }
+
 
 // On install, init storage
 chrome.runtime.onInstalled.addListener(() => {
@@ -60,33 +62,33 @@ function getOrInitSite(state, site) {
 async function checkAndTrack(tabId, url) {
     const { config, state } = await chrome.storage.local.get(["config", "state"]);
     const host = getHostname(url);
-    if (!host || !config.sites.includes(host)) return stopTracking();
+    if (!host || !config.sites.includes(host)) {
+        delete tabHosts[tabId];
+        return stopTracking();
+    }
 
     const s = getOrInitSite(state, host);
 
-    // Block if visit limit reached
     if (s.visits >= config.maxVisits) {
         chrome.tabs.update(tabId, { url: chrome.runtime.getURL("blocked.html") + `?reason=visits&site=${host}` });
         return stopTracking();
     }
-
-    // Block if time limit already used
     if (s.timeMs >= config.maxMinutes * 60 * 1000) {
         chrome.tabs.update(tabId, { url: chrome.runtime.getURL("blocked.html") + `?reason=time&site=${host}` });
         return stopTracking();
     }
 
-    // New visit: increment
-    if (activeTab.site !== host) {
+    // Only count a visit when arriving from a different host
+    if (tabHosts[tabId] !== host) {
         s.visits += 1;
         await chrome.storage.local.set({ state });
-
-        // Tell content script to show popup
-        chrome.tabs.sendMessage(tabId, { type: "VISIT_COUNT", count: s.visits });
+        chrome.tabs.sendMessage(tabId, { type: "VISIT_COUNT", count: s.visits }).catch(() => { });
     }
 
+    tabHosts[tabId] = host;
     startTracking(tabId, host);
 }
+
 
 function startTracking(tabId, site) {
     stopTracking(); // flush previous
@@ -149,6 +151,11 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "RESCHEDULE_RESET") scheduleReset();
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+    delete tabHosts[tabId];
+    if (activeTab.id === tabId) stopTracking();
 });
 
 
