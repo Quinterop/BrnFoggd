@@ -9,45 +9,47 @@ async function render() {
     const { config, state, activeTab: tracked } =
         await chrome.storage.local.get(["config", "state", "activeTab"]);
 
-    // Get current active tab's hostname
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const host = tab?.url ? new URL(tab.url).hostname.replace("www.", "") : null;
+    const container = document.getElementById("siteList");
+    container.innerHTML = "";
 
-    if (!host || !config.sites.includes(host)) {
-        document.getElementById("site").innerText = "No tracked site active";
-        ["timeToday", "timeLeft", "visitsLeft"].forEach(id => {
-            document.getElementById(id).innerText = "—";
-        });
+    if (!config.sites.length) {
+        container.innerHTML = `<div class="none">No sites configured</div>`;
         return;
     }
 
-    const s = state[host] ?? { visits: 0, timeMs: 0 };
+    for (const site of config.sites) {
+        const s = state?.[site] ?? { visits: 0, timeMs: 0 };
 
-    // Add live elapsed if currently tracking this site
-    const liveMs = (tracked?.site === host && tracked?.startTs)
-        ? Date.now() - tracked.startTs
-        : 0;
+        // Add live elapsed if this site is currently being tracked
+        const liveMs = (tracked?.site === site && tracked?.startTs && tracked.startTs >= (s.sessionStartedAt ?? 0))
+            ? Date.now() - tracked.startTs : 0;
 
-    const totalMs = s.timeMs + liveMs;
-    const limitMs = config.maxMinutes * 60 * 1000;
-    const leftMs = Math.max(limitMs - totalMs, 0);
-    const visitsLeft = Math.max(config.maxVisits - s.visits, 0);
+        const totalMs = s.timeMs + liveMs;
+        const limitMs = config.maxMinutes * 60 * 1000;
+        const leftMs = Math.max(limitMs - totalMs, 0);
+        const visitsLeft = Math.max(config.maxVisits - s.visits, 0);
+        const isActive = tracked?.site === site;
 
-    document.getElementById("site").innerText = host;
-    document.getElementById("timeToday").innerText = fmtMs(totalMs);
-    document.getElementById("timeLeft").innerText = fmtMs(leftMs);
-    document.getElementById("visitsLeft").innerText = `${visitsLeft} / ${config.maxVisits}`;
-
-    // Warn if low
-    if (leftMs < 60000 || visitsLeft <= 1) {
-        ["timeLeft", "visitsLeft"].forEach(id =>
-            document.getElementById(id).classList.add("warn")
-        );
-    }
-
-    if (leftMs === 0 || visitsLeft === 0) {
-        document.getElementById("blocked").innerText = "🚫 Limit reached for today";
+        const card = document.createElement("div");
+        card.className = "site-card";
+        card.innerHTML = `
+      <div class="site-name">${site}${isActive ? " 🟢" : ""}</div>
+      <div class="row"><span>Time today</span>   <span class="val">${fmtMs(totalMs)}</span></div>
+      <div class="row"><span>Session left</span> <span class="val ${leftMs < 60000 ? "warn" : ""}">${fmtMs(leftMs)}</span></div>
+      <div class="row"><span>Visits left</span>  <span class="val ${visitsLeft <= 1 ? "warn" : ""}">${visitsLeft} / ${config.maxVisits}</span></div>
+    `;
+        container.appendChild(card);
     }
 }
+
+document.getElementById("reset").onclick = async () => {
+    const { state } = await chrome.storage.local.get("state");
+    for (const site in state) {
+        state[site].visits = 0;
+        state[site].timeMs = 0;
+    }
+    await chrome.storage.local.set({ state, activeTab: null });
+    render();
+};
 
 render();
